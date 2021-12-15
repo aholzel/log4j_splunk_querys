@@ -1,4 +1,4 @@
-# log4j_splunk_querys
+# Log4j (CVE-2021-44228) Splunk query's
 Splunk query's to detect the used Log4j version and detect abuse.
 
 **NOTE**: please change [... INDEX] to the actual index that you have in your enviroment with this data.
