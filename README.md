@@ -53,7 +53,7 @@ It only looks for connections that where not blocked if you want everything remo
 ```
 index=[FIREWALL INDEX] action!="blocked"
     [| search index=* TERM(jndi) 
-    | rex max_match=0 "(?i)jndi\:(?:[^\/]*)\/{1,2}(?<jndi_domain>[^\/\s\,]+)" 
+    | rex max_match=0 "(\$\{.*?\}){1,}\:(?:(\$\{.*?\}){0,})\/\/(?<jndi_domain>.+?(?=\}[\,\"\'\s\/]|\}\\\\r|\s|\/))"
     | stats c by jndi_domain 
     | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
       ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"),"ipv4", true(),"domain"), 
@@ -72,7 +72,7 @@ If you have Splunk ES or just have the Splunk CIM app installed and are using th
 ```
 | tstats summariesonly=t c from datamodel=Network_Traffic where All_Traffic.action!="blocked" AND 
     [| search index=* TERM(jndi) 
-    | rex max_match=0 "(?i)jndi\:(?:[^\/]*)\/{1,2}(?<jndi_domain>[^\/\s\,]+)" 
+    | rex max_match=0 "(\$\{.*?\}){1,}\:(?:(\$\{.*?\}){0,})\/\/(?<jndi_domain>.+?(?=\}[\,\"\'\s\/]|\}\\\\r|\s|\/))" 
     | stats c by jndi_domain 
     | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
       ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"),"ipv4", true(),"domain"), 
@@ -96,7 +96,7 @@ The inner search is almost the same as the one for the ip's if now just looks fo
 ```
 index=[DNS INDEX] sourcetype=named 
     [| search index=* TERM(jndi) 
-    | rex max_match=0 "(?i)jndi\:(?:[^\/]*)\/{1,2}(?<jndi_domain>[^\/\s\,]+)" 
+    | rex max_match=0 "(\$\{.*?\}){1,}\:(?:(\$\{.*?\}){0,})\/\/(?<jndi_domain>.+?(?=\}[\,\"\'\s\/]|\}\\\\r|\s|\/))" 
     | stats c by jndi_domain 
     | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
       ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"),"ipv4", true(),"domain"), 
@@ -114,7 +114,7 @@ And also for this one a datamodel version
 ```
 | tstats summariesonly=t values(DNS.answer) AS answer, values(DNS.reply_code) AS reply_code, values(DNS.src_category) AS src_category from datamodel=Network_Resolution.DNS where 
     [| search index=* TERM(jndi) 
-    | rex max_match=0 "(?i)jndi\:(?:[^\/]*)\/{1,2}(?<jndi_domain>[^\/\s\,]+)" 
+    | rex max_match=0 "(\$\{.*?\}){1,}\:(?:(\$\{.*?\}){0,})\/\/(?<jndi_domain>.+?(?=\}[\,\"\'\s\/]|\}\\\\r|\s|\/))" 
     | stats c by jndi_domain 
     | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
       ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])"),"ipv4", true(),"domain"), 
