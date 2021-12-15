@@ -124,3 +124,6 @@ And also for this one a datamodel version
     | fields jndi_domain
     | rename jndi_domain AS DNS.query ] by _time span=1s DNS.src DNS.query
 ```
+
+#### Example output
+![DNS output example](/images/log4j_dns.PNG?raw=true "DNS example output")
