@@ -25,7 +25,8 @@ Find the used version based on the windows process creation events.
 
 **Note**: This requires a GPO change to enable the get the "Process Command Line" field filled out in your logs. See this [Microsoft site](https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing) on how to do this.
 
-#### Query
+#### Query 1
+Query tegen de "normale" Windows Eventlog
 ```
 index=[WINDOWS SECURITY INDEX] "EventCode=4688" log4j
 | rex field="Process_Command_Line" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
@@ -38,6 +39,22 @@ index=[WINDOWS SECURITY INDEX] "EventCode=4688" log4j
 | eval lastTime=strftime(lastTime,"%F %T")
 | table lastTime host log4j_version component version org_index org_sourcetype
 ```
+
+#### Query 2
+Query tegen "sysmon" Windows log
+```
+index=[WINDOWS SYSMON INDEX] EventID=1 log4j
+| rex field="CommandLine" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
+| mvexpand log4j_version
+| rex field=log4j_version "(?:log4j.*?)(?:(?<component>-[^-]+)-|-)(?<version>\d+.\d+.\d+)"
+| eval component=trim(component,"-")
+| fillnull component value="unknown"
+| stats values(log4j_version) AS log4j_version, values(component) AS component, values(version) AS version, max(_time) AS lastTime, values(index) AS org_index, values(sourcetype) AS org_sourcetype by host 
+| where isnotnull(version)
+| eval lastTime=strftime(lastTime,"%F %T")
+| table lastTime host log4j_version component version org_index org_sourcetype
+```
+
 #### Example output
 ![Windows output example](/images/log4j_windows.PNG?raw=true "Windows example output")
 
