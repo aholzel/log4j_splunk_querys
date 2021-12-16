@@ -26,7 +26,7 @@ Find the used version based on the windows process creation events.
 **Note**: This requires a GPO change to enable the get the "Process Command Line" field filled out in your logs. See this [Microsoft site](https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing) on how to do this.
 
 #### Query 1
-Query tegen de "normale" Windows Eventlog
+Query against the "normale" Windows Eventlog
 ```
 index=[WINDOWS SECURITY INDEX] "EventCode=4688" log4j
 | rex field="Process_Command_Line" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
@@ -41,7 +41,7 @@ index=[WINDOWS SECURITY INDEX] "EventCode=4688" log4j
 ```
 
 #### Query 2
-Query tegen "sysmon" Windows log
+Query against "sysmon" Windows log
 ```
 index=[WINDOWS SYSMON INDEX] EventID=1 log4j
 | rex field="CommandLine" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
