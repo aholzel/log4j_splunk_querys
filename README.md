@@ -26,7 +26,7 @@ Find the used version based on the windows process creation events.
 **Note**: This requires a GPO change to enable the get the "Process Command Line" field filled out in your logs. See this [Microsoft site](https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing) on how to do this.
 
 #### Query 1
-Query against the "normale" Windows Eventlog
+Query against the "normal" Windows Eventlog
 ```
 index=[WINDOWS SECURITY INDEX] ("EventCode=4688" OR "EventCode=4663") log4j
 | eval rex_search_field=coalesce(Process_Command_Line, Object_Name, Process_Name)
