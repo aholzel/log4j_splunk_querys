@@ -99,6 +99,7 @@ If you have Splunk ES or just have the Splunk CIM app installed and are using th
     | rex field=ipv4 "(?<dest_ip>[^\]\:]+)(?:\]|\:)(?<dest_port>\d+)"
     | rex field=ipv6 "(?:\[|^)(?<dest_ip>[^\]]+)(?:$|\](?<dest_port>\d+))"
     | eval dest_port=if(isnull(dest_port) OR len(dest_port)==0,"*",dest_port)
+    | fields dest_ip dest_port
     | rename dest_ip AS All_Traffic.dest, dest_port AS All_Traffic.dest_port ] by _time span=1s All_Traffic.action All_Traffic.dest All_Traffic.dest_port All_Traffic.src All_Traffic.src_port
 ```
 
