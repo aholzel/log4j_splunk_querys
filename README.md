@@ -28,8 +28,9 @@ Find the used version based on the windows process creation events.
 #### Query 1
 Query against the "normale" Windows Eventlog
 ```
-index=[WINDOWS SECURITY INDEX] "EventCode=4688" log4j
-| rex field="Process_Command_Line" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
+index=[WINDOWS SECURITY INDEX] ("EventCode=4688" OR "EventCode=4663") log4j
+| eval rex_search_field=coalesce(Process_Command_Line, Object_Name, Process_Name)
+| rex field="rex_search_field" max_match=0 "(?<log4j_version>log4j(?!\.configuration|\.properties).*?\.jar)" 
 | mvexpand log4j_version
 | rex field=log4j_version "(?:log4j.*?)(?:(?<component>-[^-]+)-|-)(?<version>\d+.\d+.\d+)"
 | eval component=trim(component,"-")
