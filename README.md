@@ -4,7 +4,9 @@ Splunk query's to detect the used Log4j version and detect abuse.
 **NOTE**: please change [... INDEX] to the actual index that you have in your enviroment with this data.
 
 ## Deobfuscation
+### Splunk
 To get something human readable for the obfuscated jndi strings you can use the below rex command. 
+
 ```
 | rex mode=sed field=output "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\\\\(\\\\*u0*|\\\\*0*)44/$/g s/\\\\(\\\\*u0*|\\\\*0*)24/$/g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g s/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/g"
 | eval output=ltrim(rtrim(output,"}"),"${")
@@ -29,6 +31,12 @@ And than call it with the field you want to use the command on:
 | eval output=input
 | `l4s_deobfuscate(output)`
 | fields - _time
+```
+
+### Linux CLI
+To use the sed on the linux CLI use the folling, replace `input.txt` to the file you want to process and `output.txt` to the file you want to write to
+```
+sed -E -e 's/%24/\$/'g -e 's/%7B/{/'gi -e 's/%7D/\}/'gi -e 's/%3A/:/'gi -e 's/%2F/\//'gi -e 's/\\(\\*u0*|\\*0*)44/\$/'g -e 's/\\(\\*u0*|\\*0*)24/\$/'g -e 's/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/'g -e 's/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/'g -e 's/\$\{[^-$]+-([^\}]+)\}/\1/'g input.txt >> output.txt
 ```
 
 ## Find used versions
