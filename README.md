@@ -18,8 +18,8 @@ You can also create a macro for it with an input so you don't always have to run
 ```
 [l4s_deobfuscate(1)]
 args = field_name
-definition =  rex mode=sed field=output "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\\\\(\\\\*u0*|\\\\*0*)44/$/g s/\\\\(\\\\*u0*|\\\\*0*)24/$/g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g s/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/g"\
-| eval output=ltrim(rtrim(output,"}"),"${")
+definition =  rex mode=sed field=$field_name$ "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\\\\(\\\\*u0*|\\\\*0*)44/$/g s/\\\\(\\\\*u0*|\\\\*0*)24/$/g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g s/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/g"\
+| eval $field_name$=ltrim(rtrim($field_name$,"}"),"${")
 iseval = 0
 
 ```
