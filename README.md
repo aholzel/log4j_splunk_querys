@@ -6,7 +6,7 @@ Splunk query's to detect the used Log4j version and detect abuse.
 ## Deobfuscation
 To get something human readable for the obfuscated jndi strings you can use the below rex command. 
 ```
-| rex mode=sed field=_raw "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-]+-([^\}]+)\}/\1/g"
+| rex mode=sed field=_raw "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g"
 | eval output=ltrim(rtrim(output,"}"),"${")
 ```
 Example input + output:
