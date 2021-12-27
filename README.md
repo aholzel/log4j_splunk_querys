@@ -103,7 +103,7 @@ Find connections in your firewall logs that try to make a connection to a IP add
 
 #### Query 1
 The below query will first look in every non-internal index for the term jndi, it will than extract the destination domain and filter out the valid IP addresses.</ br>
-It only looks for connections that where not blocked if you want everything remove the `action="blocked"` part.
+It only looks for connections that where not blocked if you want everything remove the `action!="blocked"` part.
 ```
 index=[FIREWALL INDEX] action!="blocked"
     [| search index=*  
