@@ -14,6 +14,16 @@ To get something human readable for the obfuscated jndi strings you can use the 
 Example input + output:
 ![SED example](/images/log4j_sed.PNG?raw=true "SED example")
 
+#### Splunk macro's 
+##### Macro 1 against _raw
+This macro will run against the _raw field and will output the "cleaned" log.
+```
+[l4s_deobfuscate]
+definition =  rex mode=sed field=_raw "s/%25/%/g s/%24/$/g s/%7[b|B]/{/g s/%7[d|D]/}/g s/%3[a|A]/:/g s/%2[f|F]/\\//g s/\\\\(\\\\*[u|U]0*|\\\\*0*)44/$/g s/\\\\(\\\\*[u|U]0*|\\\\*0*)24/$/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}/\\2/g s/\\$\\{[^-$]+-([^\\}]+)\\}/\\1/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}\\}/\\2/g"\
+iseval = 0
+```
+
+##### Macro 2 against specific field
 You can also create a macro for it with an input so you don't always have to run it against _raw put the below in your `macros.conf`
 ```
 [l4s_deobfuscate(1)]
@@ -21,7 +31,6 @@ args = field_name
 definition =  rex mode=sed field=$field_name$ "s/%25/%/g s/%24/$/g s/%7[b|B]/{/g s/%7[d|D]/}/g s/%3[a|A]/:/g s/%2[f|F]/\\//g s/\\\\(\\\\*[u|U]0*|\\\\*0*)44/$/g s/\\\\(\\\\*[u|U]0*|\\\\*0*)24/$/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}/\\2/g s/\\$\\{[^-$]+-([^\\}]+)\\}/\\1/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}\\}/\\2/g"\
 | eval $field_name$=ltrim(rtrim($field_name$,"}"),"${")
 iseval = 0
-
 ```
 And than call it with the field you want to use the command on:
 ```
@@ -39,11 +48,12 @@ To use the sed on the linux CLI use the folling, replace `input.txt` to the file
 sed -E -e 's/%24/\$/'g -e 's/%7B/{/'gi -e 's/%7D/\}/'gi -e 's/%3A/:/'gi -e 's/%2F/\//'gi -e 's/\\(\\*u0*|\\*0*)44/\$/'g -e 's/\\(\\*u0*|\\*0*)24/\$/'g -e 's/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/'g -e 's/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/'g -e 's/\$\{[^-$]+-([^\}]+)\}/\1/'g input.txt >> output.txt
 ```
 
-## Find used versions
-### Stacktraces
+## Splunk searches 
+### Find used versions
+#### Stacktraces
 Find the used version based on stacktraces.
 
-#### Query
+##### Query
 ```
 index=* org.apache.logging.log4j 
 | rex field=_raw "\[(?<log4j_version>log4j-[^]]+)" 
@@ -53,15 +63,15 @@ index=* org.apache.logging.log4j
 | rex field=log4j_version "(?:log4j-)(?<component>[^-]+)-(?<version>\d+.\d+.\d+)"
 | table lastTime host log4j_version component version org_index org_sourcetype
 ```
-#### Example output
+##### Example output
 ![Stacktrace output example](/images/log4j_stacktrace.PNG?raw=true "Stracktrace example output")
 
-### Windows process creation
+#### Windows process creation
 Find the used version based on the windows process creation events. 
 
 **Note**: This requires a GPO change to enable the get the "Process Command Line" field filled out in your logs. See this [Microsoft site](https://docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/component-updates/command-line-process-auditing) on how to do this.
 
-#### Query 1
+##### Query 1
 Query against the "normal" Windows Eventlog
 ```
 index=[WINDOWS SECURITY INDEX] ("EventCode=4688" OR "EventCode=4663") log4j
@@ -77,7 +87,7 @@ index=[WINDOWS SECURITY INDEX] ("EventCode=4688" OR "EventCode=4663") log4j
 | table lastTime host log4j_version component version org_index org_sourcetype
 ```
 
-#### Query 2
+##### Query 2
 Query against "sysmon" Windows log
 ```
 index=[WINDOWS SYSMON INDEX] EventID=1 log4j
@@ -92,16 +102,16 @@ index=[WINDOWS SYSMON INDEX] EventID=1 log4j
 | table lastTime host log4j_version component version org_index org_sourcetype
 ```
 
-#### Example output
+##### Example output
 ![Windows output example](/images/log4j_windows.PNG?raw=true "Windows example output")
 
-## Find callback connections
+### Find callback connections
 Find connections back to the JNDI domains
 
-### IP based JNDI connections
+#### IP based JNDI connections
 Find connections in your firewall logs that try to make a connection to a IP address that was in the jndi string.
 
-#### Query 1
+##### Query 1
 The below query will first look in every non-internal index for the term jndi, it will than extract the destination domain and filter out the valid IP addresses.</ br>
 It only looks for connections that where not blocked if you want everything remove the `action!="blocked"` part.
 ```
@@ -121,7 +131,7 @@ index=[FIREWALL INDEX] action!="blocked"
 | stats c by action dest dest_port src src_port
 ```
 
-#### Query 2
+##### Query 2
 If you have Splunk ES or just have the Splunk CIM app installed and are using the Network Traffic datamodel the below search can also be used.
 ```
 | tstats summariesonly=t c from datamodel=Network_Traffic where All_Traffic.action!="blocked" AND 
@@ -140,13 +150,33 @@ If you have Splunk ES or just have the Splunk CIM app installed and are using th
     | rename dest_ip AS All_Traffic.dest, dest_port AS All_Traffic.dest_port ] by _time span=1s All_Traffic.action All_Traffic.dest All_Traffic.dest_port All_Traffic.src All_Traffic.src_port
 ```
 
-#### Example output
+##### Query 3
+Another method to look for jndi strings is to first "clean" the log with the earlier suggested macro and than look for jndi in the "cleaned" log. I think this is the best and most reliable way to search that gives the least false positives and is especially useful when you use it as a saved search that runs every 5 minutes.
+```
+index=[FIREWALL INDEX]
+    [| search index=* 
+    | `l4s_deobfuscate` 
+    | search *${jndi:* 
+    | rex field=_raw "jndi:\w+:\/\/(?<jndi_domain>[^\/\s\,\}]+)" 
+    | stats c by jndi_domain 
+    | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
+       ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:$|\:\d{1,5}$)"),"ipv4", true(),"domain"), 
+        ipv4=if(ip_version=="ipv4",jndi_domain,null()), 
+        ipv6=if(ip_version=="ipv6",jndi_domain,null()) 
+    | where match(ip_version,"ipv\d") 
+    | rex field=mal_domain "(?<dest_ip>[^\]\:]+)(?:\]|\:)(?<dest_port>\d+)" 
+    | fields dest_ip dest_port ]
+| stats c by action dest dest_port src src_port
+
+```
+
+##### Example output
 ![Firewall output example](/images/log4j_firewall.PNG?raw=true "Firewall example output")
 
-### DNS based JNDI connections
+#### DNS based JNDI connections
 Find connection in your DNS logs with query's for a domain that was in the jndi string.
 
-#### Query 1
+##### Query 1
 The inner search is almost the same as the one for the ip's if now just looks for domains instead of ip's.
 ```
 index=[DNS INDEX] sourcetype=named 
@@ -164,7 +194,7 @@ index=[DNS INDEX] sourcetype=named
 | table _time src_ip src_category query reply_code answer
 ```
 
-#### Query 2
+##### Query 2
 And also for this one a datamodel version
 ```
 | tstats summariesonly=t values(DNS.answer) AS answer, values(DNS.reply_code) AS reply_code, values(DNS.src_category) AS src_category from datamodel=Network_Resolution.DNS where 
@@ -180,7 +210,29 @@ And also for this one a datamodel version
     | rename jndi_domain AS DNS.query ] by _time span=1s DNS.src DNS.query
 ```
 
-#### Example output
+##### Query 3
+Using the macro to "clean" the logs first
+```
+index=[DNS INDEX] sourcetype=named 
+    [| search index=* 
+    | `l4s_deobfuscate` 
+    | search *${jndi:* 
+    | rex field=_raw "jndi:\w+:\/\/(?<jndi_domain>[^\/\s\,\}]+)" 
+    | stats c by jndi_domain 
+    | eval jndi_domain=replace(lower(jndi_domain), ".*?\$\{[a-z0-9-_:\.]+?\}","*"), jndi_domain=trim(jndi_domain,"}"),
+        ip_version=case(match(jndi_domain,"(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))"),"ipv6", match(jndi_domain,"^(?:[0-9]{1,3}\.){3}[0-9]{1,3}(?:$|\:\d{1,5}$)"),"ipv4", true(),"domain"), 
+        ipv4=if(ip_version=="ipv4",jndi_domain,null()), 
+        ipv6=if(ip_version=="ipv6",jndi_domain,null()) 
+    | where !match(ip_version,"ipv\d") AND !match(jndi_domain,"^\$") AND !match(jndi_domain,"\}|\:") AND !match(jndi_domain,"\s") AND jndi_domain!="localhost" AND len(jndi_domain)>4 AND match(jndi_domain,".*\..*") 
+    | fields jndi_domain 
+    | rename jndi_domain AS query ]
+| stats values(answer) AS answer, values(reply_code) AS reply_code, values(src_category) AS src_category BY _time src_ip query
+| dnslookup field=src_ip
+| rename dnslookup AS src
+| table _time src_ip src src src_category query reply_code answer
+```
+
+##### Example output
 ![DNS output example](/images/log4j_dns.PNG?raw=true "DNS example output")
 
 
