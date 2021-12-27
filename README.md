@@ -8,7 +8,7 @@ Splunk query's to detect the used Log4j version and detect abuse.
 To get something human readable for the obfuscated jndi strings you can use the below rex command. 
 
 ```
-| rex mode=sed field=output "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\\\\(\\\\*u0*|\\\\*0*)44/$/g s/\\\\(\\\\*u0*|\\\\*0*)24/$/g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g s/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/g"
+| rex mode=sed field=output "s/%25/%/g s/%24/$/g s/%7[b|B]/{/g s/%7[d|D]/}/g s/%3[a|A]/:/g s/%2[f|F]/\\//g s/\\\\(\\\\*[u|U]0*|\\\\*0*)44/$/g s/\\\\(\\\\*[u|U]0*|\\\\*0*)24/$/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}/\\2/g s/\\$\\{[^-$]+-([^\\}]+)\\}/\\1/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}\\}/\\2/g"
 | eval output=ltrim(rtrim(output,"}"),"${")
 ```
 Example input + output:
@@ -18,7 +18,7 @@ You can also create a macro for it with an input so you don't always have to run
 ```
 [l4s_deobfuscate(1)]
 args = field_name
-definition =  rex mode=sed field=$field_name$ "s/%24/$/g s/%7B/{/g s/%7D/}/g s/%3A/:/g s/%2F/\//g s/\\\\(\\\\*u0*|\\\\*0*)44/$/g s/\\\\(\\\\*u0*|\\\\*0*)24/$/g s/\$\{(lower:|upper:|::-)([^\}]+)\}/\2/g s/\$\{[^-$]+-([^\}]+)\}/\1/g s/\$\{(lower:|upper:|::-)([^\}]+)\}\}/\2/g"\
+definition =  rex mode=sed field=$field_name$ "s/%25/%/g s/%24/$/g s/%7[b|B]/{/g s/%7[d|D]/}/g s/%3[a|A]/:/g s/%2[f|F]/\\//g s/\\\\(\\\\*[u|U]0*|\\\\*0*)44/$/g s/\\\\(\\\\*[u|U]0*|\\\\*0*)24/$/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}/\\2/g s/\\$\\{[^-$]+-([^\\}]+)\\}/\\1/g s/\\$\\{([l|L][o|O][w|W][e|E][r|R]:|[u|U][p|P[p|P][e|E][r|R]:|::-)([^\\}]+)\\}\\}/\\2/g"\
 | eval $field_name$=ltrim(rtrim($field_name$,"}"),"${")
 iseval = 0
 
